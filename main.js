@@ -1,9 +1,13 @@
-const { app, BrowserWindow, screen } = require('electron');
+const { app, BrowserWindow, screen, ipcMain } = require('electron');
 const path = require('path');
+
+let mainWindow;
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-  const mainWindow = new BrowserWindow({
+
+  // Create the main window
+  mainWindow = new BrowserWindow({
     width: width,
     height: height,
     webPreferences: {
@@ -17,7 +21,12 @@ function createWindow() {
   });
 
   mainWindow.loadFile('index.html');
-  mainWindow.setIgnoreMouseEvents(false); // Allow mouse events to interact with Pikmin
+  mainWindow.setIgnoreMouseEvents(true, { forward: true }); // Ignore mouse events globally by default
+
+  // Listen for renderer events to toggle mouse events
+  ipcMain.on('toggle-mouse-events', (event, ignoreMouseEvents) => {
+    mainWindow.setIgnoreMouseEvents(ignoreMouseEvents, { forward: !ignoreMouseEvents });
+  });
 }
 
 app.whenReady().then(() => {

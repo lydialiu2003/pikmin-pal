@@ -9,31 +9,35 @@ document.addEventListener('DOMContentLoaded', () => {
   let direction = 'right';
   let isIdle = false;
   let idleFrameTimeout;
-  let clickTimeout;
+  let mouseX = 0;
+  let mouseY = 0;
 
   pikmin.style.backgroundImage = "url('./assets/sprites/yellow/walking/leaf/right.png')";
 
   function animate() {
-    if (isIdle) return;
-
+    // Ensure the animation cycles through the walking frames
     currentFrame = (currentFrame + 1) % totalFrames;
     pikmin.style.backgroundPosition = `-${currentFrame * frameWidth}px 0`;
 
-    if (direction === 'right') {
-      position += 1;
-      if (position >= window.innerWidth) {
-        direction = 'left';
-        pikmin.style.backgroundImage = "url('./assets/sprites/yellow/walking/leaf/left.png')";
+    if (!isIdle) {
+      // Move Pikmin horizontally
+      if (direction === 'right') {
+        position += 1;
+        if (position >= window.innerWidth) {
+          direction = 'left';
+          pikmin.style.backgroundImage = "url('./assets/sprites/yellow/walking/leaf/left.png')";
+        }
+      } else {
+        position -= 1;
+        if (position <= -24) {
+          direction = 'right';
+          pikmin.style.backgroundImage = "url('./assets/sprites/yellow/walking/leaf/right.png')";
+        }
       }
-    } else {
-      position -= 1;
-      if (position <= -24) {
-        direction = 'right';
-        pikmin.style.backgroundImage = "url('./assets/sprites/yellow/walking/leaf/right.png')";
-      }
+      pikmin.style.left = `${position}px`;
     }
-    pikmin.style.left = `${position}px`;
 
+    // Continue animation
     setTimeout(() => {
       requestAnimationFrame(animate);
     }, 150);
@@ -82,44 +86,80 @@ document.addEventListener('DOMContentLoaded', () => {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  function handleClick() {
-    if (clickTimeout) return; // Prevent multiple clicks
+  function handleClick(event) {
+    const pikminRect = pikmin.getBoundingClientRect();
 
-    isIdle = true;
-    let idleFrame = 0;
+    // Check if the mouse click is within Pikmin's bounding box
+    if (
+      event.clientX >= pikminRect.left &&
+      event.clientX <= pikminRect.right &&
+      event.clientY >= pikminRect.top &&
+      event.clientY <= pikminRect.bottom
+    ) {
+      isIdle = true; // Set idle state to stop movement
+      let idleFrame = 0;
 
-    function playIdleFrame() {
-      if (!isIdle) return;
+      function playIdleFrame() {
+        if (!isIdle) return;
 
-      pikmin.style.backgroundPosition = `-${idleFrame * frameWidth}px 0`;
-      idleFrame = (idleFrame + 1) % idleFrames;
+        pikmin.style.backgroundPosition = `-${idleFrame * frameWidth}px 0`;
+        idleFrame = (idleFrame + 1) % idleFrames;
 
-      clearTimeout(idleFrameTimeout);
-      idleFrameTimeout = setTimeout(playIdleFrame, getRandomInterval(200, 800)); // Randomize between 200 to 800 ms
+        clearTimeout(idleFrameTimeout);
+        idleFrameTimeout = setTimeout(playIdleFrame, getRandomInterval(200, 800)); // Randomize between 200 to 800 ms
+      }
+
+      pikmin.style.backgroundImage = "url('./assets/sprites/yellow/idle/leaf.png')";
+      playIdleFrame();
+
+      const audio = new Audio('./assets/sounds/on_click.mp3');
+      audio.play().catch(error => {
+        console.error('Error playing sound:', error);
+      });
+
+      setTimeout(() => {
+        isIdle = false; // Reset the idle state to allow further clicks
+        pikmin.style.backgroundImage = direction === 'right' 
+          ? "url('./assets/sprites/yellow/walking/leaf/right.png')" 
+          : "url('./assets/sprites/yellow/walking/leaf/left.png')";
+        animate();
+      }, 1000); // Idle for 1 second
     }
-
-    pikmin.style.backgroundImage = "url('./assets/sprites/yellow/idle/leaf.png')";
-    playIdleFrame();
-
-    const audio = new Audio('./assets/sounds/on_click.mp3');
-    audio.play().catch(error => {
-      console.error('Error playing sound:', error);
-    });
-
-    clickTimeout = setTimeout(() => {
-      isIdle = false;
-      pikmin.style.backgroundImage = direction === 'right' 
-        ? "url('./assets/sprites/yellow/walking/leaf/right.png')" 
-        : "url('./assets/sprites/yellow/walking/leaf/left.png')";
-      animate();
-      clickTimeout = null;
-    }, 1000); // Idle for 1 second
   }
 
-  pikmin.addEventListener('click', handleClick);
+  function toggleMouseEvents(event) {
+    const pikminRect = pikmin.getBoundingClientRect();
+
+    // Check if the mouse is over the Pikmin
+    const isMouseOverPikmin =
+      event.clientX >= pikminRect.left &&
+      event.clientX <= pikminRect.right &&
+      event.clientY >= pikminRect.top &&
+      event.clientY <= pikminRect.bottom;
+
+    // Toggle mouse events based on whether the mouse is over the Pikmin
+    window.electronAPI.toggleMouseEvents(!isMouseOverPikmin);
+  }
+
+  // Track mouse position globally
+  document.addEventListener('mousemove', (event) => {
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+  });
+
+  // Add a global click listener to check for clicks within Pikmin's area
+  document.addEventListener('click', handleClick);
+
+  // Add a global mousemove listener to toggle mouse events dynamically
+  document.addEventListener('mousemove', toggleMouseEvents);
+
+  // Start the Pikmin walking immediately
+  animate();
 
   setInterval(switchDirection, 10000); // Check every 10 seconds
   setInterval(startIdle, 60000); // Check every 1 minute
 
-  animate();
+  window.electronAPI.forwardClick = (mouseX, mouseY) => {
+    handleClick({ clientX: mouseX, clientY: mouseY });
+  };
 });
