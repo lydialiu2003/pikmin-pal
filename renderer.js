@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let direction = 'right';
   let isIdle = false;
   let idleFrameTimeout;
+  let clickTimeout;
 
   pikmin.style.backgroundImage = "url('./assets/sprites/yellow/walking/leaf/right.png')";
 
@@ -80,6 +81,42 @@ document.addEventListener('DOMContentLoaded', () => {
   function getRandomInterval(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
+
+  function handleClick() {
+    if (clickTimeout) return; // Prevent multiple clicks
+
+    isIdle = true;
+    let idleFrame = 0;
+
+    function playIdleFrame() {
+      if (!isIdle) return;
+
+      pikmin.style.backgroundPosition = `-${idleFrame * frameWidth}px 0`;
+      idleFrame = (idleFrame + 1) % idleFrames;
+
+      clearTimeout(idleFrameTimeout);
+      idleFrameTimeout = setTimeout(playIdleFrame, getRandomInterval(200, 800)); // Randomize between 200 to 800 ms
+    }
+
+    pikmin.style.backgroundImage = "url('./assets/sprites/yellow/idle/leaf.png')";
+    playIdleFrame();
+
+    const audio = new Audio('./assets/sounds/on_click.mp3');
+    audio.play().catch(error => {
+      console.error('Error playing sound:', error);
+    });
+
+    clickTimeout = setTimeout(() => {
+      isIdle = false;
+      pikmin.style.backgroundImage = direction === 'right' 
+        ? "url('./assets/sprites/yellow/walking/leaf/right.png')" 
+        : "url('./assets/sprites/yellow/walking/leaf/left.png')";
+      animate();
+      clickTimeout = null;
+    }, 1000); // Idle for 1 second
+  }
+
+  pikmin.addEventListener('click', handleClick);
 
   setInterval(switchDirection, 10000); // Check every 10 seconds
   setInterval(startIdle, 60000); // Check every 1 minute

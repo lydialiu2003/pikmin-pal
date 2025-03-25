@@ -17,7 +17,7 @@ function createWindow() {
   });
 
   mainWindow.loadFile('index.html');
-  mainWindow.setIgnoreMouseEvents(true);
+  mainWindow.setIgnoreMouseEvents(false); // Allow mouse events to interact with Pikmin
 }
 
 app.whenReady().then(() => {
