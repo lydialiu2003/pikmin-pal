@@ -11,8 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let idleFrameTimeout;
   let mouseX = 0;
   let mouseY = 0;
+  let currentHat = 'leaf'; // Default hat
 
-  pikmin.style.backgroundImage = "url('./assets/sprites/yellow/walking/leaf/right.png')";
+  pikmin.style.backgroundImage = `url('./assets/sprites/yellow/walking/${currentHat}/${direction}.png')`;
 
   function animate() {
     // Ensure the animation cycles through the walking frames
@@ -25,13 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
         position += 1;
         if (position >= window.innerWidth) {
           direction = 'left';
-          pikmin.style.backgroundImage = "url('./assets/sprites/yellow/walking/leaf/left.png')";
+          pikmin.style.backgroundImage = `url('./assets/sprites/yellow/walking/${currentHat}/left.png')`;
         }
       } else {
         position -= 1;
         if (position <= -24) {
           direction = 'right';
-          pikmin.style.backgroundImage = "url('./assets/sprites/yellow/walking/leaf/right.png')";
+          pikmin.style.backgroundImage = `url('./assets/sprites/yellow/walking/${currentHat}/right.png')`;
         }
       }
       pikmin.style.left = `${position}px`;
@@ -40,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Continue animation
     setTimeout(() => {
       requestAnimationFrame(animate);
-    }, 150);
+    }, 150); // Corrected to 150ms per frame
   }
 
   function switchDirection() {
@@ -49,8 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (Math.random() < 0.3) { // 30% chance to switch direction
       direction = direction === 'right' ? 'left' : 'right';
       pikmin.style.backgroundImage = direction === 'right' 
-        ? "url('./assets/sprites/yellow/walking/leaf/right.png')" 
-        : "url('./assets/sprites/yellow/walking/leaf/left.png')";
+        ? `url('./assets/sprites/yellow/walking/${currentHat}/right.png')` 
+        : `url('./assets/sprites/yellow/walking/${currentHat}/left.png')`;
     }
   }
 
@@ -75,8 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         isIdle = false;
         pikmin.style.backgroundImage = direction === 'right' 
-          ? "url('./assets/sprites/yellow/walking/leaf/right.png')" 
-          : "url('./assets/sprites/yellow/walking/leaf/left.png')";
+          ? `url('./assets/sprites/yellow/walking/${currentHat}/right.png')` 
+          : `url('./assets/sprites/yellow/walking/${currentHat}/left.png')`;
         animate();
       }, 30000); // Idle for 30 seconds
     }
@@ -120,8 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         isIdle = false; // Reset the idle state to allow further clicks
         pikmin.style.backgroundImage = direction === 'right' 
-          ? "url('./assets/sprites/yellow/walking/leaf/right.png')" 
-          : "url('./assets/sprites/yellow/walking/leaf/left.png')";
+          ? `url('./assets/sprites/yellow/walking/${currentHat}/right.png')` 
+          : `url('./assets/sprites/yellow/walking/${currentHat}/left.png')`;
         animate();
       }, 1000); // Idle for 1 second
     }
@@ -140,6 +141,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // Toggle mouse events based on whether the mouse is over the Pikmin
     window.electronAPI.toggleMouseEvents(!isMouseOverPikmin);
   }
+
+  function updateHat(newHat) {
+    currentHat = newHat;
+
+    // Determine the correct image path based on the current state and direction
+    if (isIdle) {
+      pikmin.style.backgroundImage = `url('./assets/sprites/yellow/idle/${currentHat}.png')`;
+    } else {
+      pikmin.style.backgroundImage = `url('./assets/sprites/yellow/walking/${currentHat}/${direction}.png')`;
+    }
+
+    // Ensure the animation continues after a hat change
+    if (!isIdle) {
+      animate();
+    }
+  }
+
+  window.electronAPI.onHatChange((newHat) => {
+    updateHat(newHat);
+  });
 
   // Track mouse position globally
   document.addEventListener('mousemove', (event) => {
