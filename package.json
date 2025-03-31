@@ -3,10 +3,42 @@
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder"
   },
   "devDependencies": {
-    "electron": "^35.1.2"
+    "electron": "^35.1.2",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.pikmin.pal",
+    "productName": "Pikmin Pal",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "renderer.js",
+      "preload.js",
+      "reminderWindow.js",
+      "index.html",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      "assets/fonts/pikmin.otf",
+      "assets/sounds/*.mp3",
+      "assets/sprites/**/*.png"
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
   "description": ""
 }
