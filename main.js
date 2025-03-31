@@ -1,13 +1,12 @@
 const { app, BrowserWindow, screen, ipcMain } = require('electron');
 const path = require('path');
+const { createReminderWindow } = require('./reminderWindow');
 
 let mainWindow;
-let hatSelectorWindow;
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
-  // Create the main window
   mainWindow = new BrowserWindow({
     width: width,
     height: height,
@@ -21,32 +20,32 @@ function createWindow() {
     alwaysOnTop: true,
   });
 
-  mainWindow.loadFile('index.html');
-  mainWindow.setIgnoreMouseEvents(true, { forward: true }); // Ignore mouse events globally by default
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
-  // Listen for renderer events to toggle mouse events
-  ipcMain.on('toggle-mouse-events', (event, ignoreMouseEvents) => {
-    mainWindow.setIgnoreMouseEvents(ignoreMouseEvents, { forward: !ignoreMouseEvents });
+  mainWindow.setIgnoreMouseEvents(true, { forward: true });
+
+  ipcMain.on('enable-mouse-events', () => {
+    console.log('Mouse events enabled');
+    mainWindow.setIgnoreMouseEvents(false);
   });
 
-  // Create the hat selector window
-  hatSelectorWindow = new BrowserWindow({
-    width: 300,
-    height: 200,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-    },
+  ipcMain.on('disable-mouse-events', () => {
+    console.log('Mouse events disabled');
+    mainWindow.setIgnoreMouseEvents(true, { forward: true });
   });
-  hatSelectorWindow.loadFile('hat-selector.html');
+
+  // Use the reminder window logic from the new file
+  ipcMain.on('show-water-reminder', () => {
+    createReminderWindow();
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('Main window finished loading');
+  });
 }
 
 app.whenReady().then(() => {
   createWindow();
-
-  ipcMain.on('change-hat', (event, hat) => {
-    mainWindow.webContents.send('hat-changed', hat); // Forward hat change to the main window
-  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
