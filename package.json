@@ -2,9 +2,15 @@
   "name": "pikmin-pal",
   "version": "1.0.0",
   "main": "main.js",
+  "description": "Pikmin Pal is a fun and interactive desktop companion application.",
+  "author": "Your Name <your.email@example.com>",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
+  },
+  "dependencies": {
+    "fs-extra": "^11.1.1",
+    "node-notifier": "^10.0.1"
   },
   "devDependencies": {
     "electron": "^35.1.2",
@@ -21,24 +27,32 @@
       "renderer.js",
       "preload.js",
       "reminderWindow.js",
+      "stats.js",
+      "events.js",
+      "utils.js",
       "index.html",
       "assets/**/*",
+      ".gitattributes",
+      ".gitignore",
       "package.json"
     ],
-    "extraResources": [
-      "assets/fonts/pikmin.otf",
-      "assets/sounds/*.mp3",
-      "assets/sprites/**/*.png"
-    ],
+    "extraResources": [],
     "mac": {
-      "target": "dmg"
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "assets/icons/pikmin-pal.icns",
+      "hardenedRuntime": false,
+      "sign": false
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/icons/pikmin-pal.ico"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "assets/icons/pikmin-pal.png"
     }
-  },
-  "description": ""
+  }
 }

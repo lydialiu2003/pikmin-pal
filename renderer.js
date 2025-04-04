@@ -1,348 +1,142 @@
+import { initializeStats } from './stats.js';
+import { initializeEvents } from './events.js';
+import { getRandomInterval } from './utils.js';
+
 document.addEventListener('DOMContentLoaded', () => {
+  if (!window.electronAPI) {
+    console.error('electronAPI is undefined. Preload script may have failed to load.');
+    alert('Error: Preload script failed to load. Please check the console for details.');
+    return;
+  }
+
   const pikmin = document.getElementById('pikmin');
   const frameWidth = 24;
   const frameHeight = 50;
-  const totalFrames = 4; // Assuming there are 4 frames in the sprite sheet
-  const idleFrames = 5; // Assuming there are 5 frames in the idle sprite sheet
+  const totalFrames = 4;
   let currentFrame = 0;
   let position = 0;
   let direction = 'right';
   let isIdle = false;
-  let idleFrameTimeout;
-  let mouseX = 0;
-  let mouseY = 0;
-  let currentHat = 'leaf'; // Default hat
-  let frameSpeed = 150; // Default speed for bud
-  const movementPerFrame = 2; // Fixed amount of movement per frame
-  let animationFrameId; // Store the current animation frame ID for proper synchronization
-
-  // Core stats
+  let animationFrameId;
   let hydration = 100;
   let energy = 100;
   let activity = 100;
   let focus = 0;
+  let currentHat = 'leaf'; // Default hat
 
-  pikmin.style.backgroundImage = `url('./assets/sprites/yellow/walking/${currentHat}/${direction}.png')`;
+  // Dynamically resolve the initial background image path
+  const initialPath = window.electronAPI.resolveAssetPath('sprites/yellow/walking/leaf/right.png');
+  console.log('Resolved Initial Path:', initialPath); // Debug log
+
+  // Test loading the image
+  const img = new Image();
+  img.src = initialPath;
+  img.onload = () => {
+    console.log('Image loaded successfully:', initialPath);
+    pikmin.style.backgroundImage = `url("${initialPath}")`;
+  };
+  img.onerror = (err) => {
+    console.error('Failed to load image:', initialPath, err);
+  };
 
   function animate() {
-    // Ensure the animation cycles through the walking frames
+    if (isIdle) return; // Prevent animation during idle state
+
+    // Handle walking state animation
     currentFrame = (currentFrame + 1) % totalFrames;
     pikmin.style.backgroundPosition = `-${currentFrame * frameWidth}px 0`;
 
-    if (!isIdle) {
-      // Move Pikmin horizontally by a fixed amount per frame
-      if (direction === 'right') {
-        position += movementPerFrame;
-        if (position >= window.innerWidth) {
-          direction = 'left';
-          pikmin.style.backgroundImage = `url('./assets/sprites/yellow/walking/${currentHat}/left.png')`;
-        }
-      } else {
-        position -= movementPerFrame;
-        if (position <= -frameWidth) {
-          direction = 'right';
-          pikmin.style.backgroundImage = `url('./assets/sprites/yellow/walking/${currentHat}/right.png')`;
-        }
+    if (direction === 'right') {
+      position += 2;
+      if (position >= window.innerWidth) {
+        direction = 'left';
+        const leftPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/left.png`);
+        pikmin.style.backgroundImage = `url("${leftPath}")`;
       }
-      pikmin.style.left = `${position}px`;
+    } else {
+      position -= 2;
+      if (position <= -frameWidth) {
+        direction = 'right';
+        const rightPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/right.png`);
+        pikmin.style.backgroundImage = `url("${rightPath}")`;
+      }
     }
+    pikmin.style.left = `${position}px`;
 
-    // Continue animation with the current frame speed (walking only)
     animationFrameId = setTimeout(() => {
       requestAnimationFrame(animate);
-    }, frameSpeed);
+    }, 150);
   }
 
   function resetAnimationState() {
-    // Clear any ongoing or pending animations
     clearTimeout(animationFrameId);
     cancelAnimationFrame(animationFrameId);
-    clearTimeout(idleFrameTimeout); // Clear idle frame timeout
-    currentFrame = 0; // Reset to the first frame
-
-    console.log('Animation state reset'); // Debug log
+    currentFrame = 0;
+    console.log('Animation state reset');
   }
-
-  function switchDirection() {
-    if (isIdle) return;
-
-    if (Math.random() < 0.3) { // 30% chance to switch direction
-      direction = direction === 'right' ? 'left' : 'right';
-      pikmin.style.backgroundImage = direction === 'right' 
-        ? `url('./assets/sprites/yellow/walking/${currentHat}/right.png')` 
-        : `url('./assets/sprites/yellow/walking/${currentHat}/left.png')`;
-    }
-  }
-
-  function startIdle() {
-    if (isIdle) return; // Prevent multiple idle animations
-    isIdle = true;
-    resetAnimationState(); // Ensure no overlapping animations
-    let idleFrame = 0;
-
-    function playIdleFrame() {
-      if (!isIdle) return;
-
-      pikmin.style.backgroundPosition = `-${idleFrame * frameWidth}px 0`;
-      idleFrame = (idleFrame + 1) % idleFrames;
-
-      // Use the randomized interval for idle animation
-      idleFrameTimeout = setTimeout(playIdleFrame, getRandomInterval(200, 800));
-    }
-
-    // Use the currentHat for the idle animation
-    pikmin.style.backgroundImage = `url('./assets/sprites/yellow/idle/${currentHat}.png')`;
-    playIdleFrame();
-
-    setTimeout(() => {
-      isIdle = false;
-      pikmin.style.backgroundImage = direction === 'right' 
-        ? `url('./assets/sprites/yellow/walking/${currentHat}/right.png')` 
-        : `url('./assets/sprites/yellow/walking/${currentHat}/left.png')`;
-      resetAnimationState();
-      animate(); // Resume walking animation
-    }, 30000); // Idle for 30 seconds
-  }
-
-  function getRandomInterval(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
-  function handleClick(event) {
-    const pikminRect = pikmin.getBoundingClientRect();
-
-    // Check if the mouse click is within Pikmin's bounding box
-    if (
-      event.clientX >= pikminRect.left &&
-      event.clientX <= pikminRect.right &&
-      event.clientY >= pikminRect.top &&
-      event.clientY <= pikminRect.bottom
-    ) {
-      isIdle = true; // Set idle state to stop movement
-      resetAnimationState(); // Ensure no overlapping animations
-      let idleFrame = 0;
-
-      function playIdleFrame() {
-        if (!isIdle) return;
-
-        pikmin.style.backgroundPosition = `-${idleFrame * frameWidth}px 0`;
-        idleFrame = (idleFrame + 1) % idleFrames;
-
-        // Use the randomized interval for idle animation
-        idleFrameTimeout = setTimeout(playIdleFrame, getRandomInterval(500, 1100));
-      }
-
-      // Use the currentHat for the idle animation
-      pikmin.style.backgroundImage = `url('./assets/sprites/yellow/idle/${currentHat}.png')`;
-      playIdleFrame();
-
-      const audio = new Audio('./assets/sounds/on_click.mp3');
-      audio.play().catch(error => {
-        console.error('Error playing sound:', error);
-      });
-
-      setTimeout(() => {
-        isIdle = false; // Reset the idle state to allow further clicks
-        pikmin.style.backgroundImage = direction === 'right' 
-          ? `url('./assets/sprites/yellow/walking/${currentHat}/right.png')` 
-          : `url('./assets/sprites/yellow/walking/${currentHat}/left.png')`;
-        resetAnimationState();
-        animate(); // Resume walking animation
-      }, 1000); // Idle for 1 second
-    }
-  }
-
-  function toggleMouseEvents(event) {
-    const pikminRect = pikmin.getBoundingClientRect();
-
-    // Check if the mouse is over the Pikmin
-    const isMouseOverPikmin =
-      event.clientX >= pikminRect.left &&
-      event.clientX <= pikminRect.right &&
-      event.clientY >= pikminRect.top &&
-      event.clientY <= pikminRect.bottom;
-
-    // Toggle mouse events based on whether the mouse is over the Pikmin
-    window.electronAPI.toggleMouseEvents(!isMouseOverPikmin);
-  }
-
-  function updateHat(newHat) {
-    currentHat = newHat;
-
-    // Play the "upgrade.mp3" sound
-    const upgradeAudio = new Audio('./assets/sounds/upgrade.mp3');
-    upgradeAudio.play().then(() => {
-      console.log('Upgrade sound played successfully');
-    }).catch(error => {
-      console.error('Error playing upgrade sound:', error);
-    });
-
-    // Update frame speed based on the selected hat (walking only)
-    if (currentHat === 'leaf') {
-      frameSpeed = 200;
-    } else if (currentHat === 'bud') {
-      frameSpeed = 150;
-    } else if (currentHat === 'flower') {
-      frameSpeed = 100;
-    }
-
-    // Construct absolute paths for idle and walking animations with cache-busting
-    const idlePath = `file://${__dirname}/assets/sprites/yellow/idle/${currentHat}.png?v=${Date.now()}`;
-    const walkingPath = `file://${__dirname}/assets/sprites/yellow/walking/${currentHat}/${direction}.png?v=${Date.now()}`;
-
-    // Debug log to confirm the file paths
-    console.log(`Updated hat to ${currentHat}. Idle path: ${idlePath}, Walking path: ${walkingPath}`);
-
-    // Update the background image only if the file path changes
-    if (isIdle) {
-      pikmin.style.backgroundImage = `url("${idlePath}")`;
-    } else {
-      pikmin.style.backgroundImage = `url("${walkingPath}")`;
-    }
-
-    // Reset animation state to ensure proper sequencing
-    resetAnimationState();
-    if (!isIdle) {
-      animate(); // Restart the walking animation
-    }
-  }
-
-  window.electronAPI.onHatChange((newHat) => {
-    updateHat(newHat);
-  });
-
-  // Track mouse position globally
-  document.addEventListener('mousemove', (event) => {
-    mouseX = event.clientX;
-    mouseY = event.clientY;
-  });
-
-  // Add a global click listener to check for clicks within Pikmin's area
-  document.addEventListener('click', handleClick);
-
-  // Add a global mousemove listener to dynamically enable or disable mouse events
-  document.addEventListener('mousemove', (event) => {
-    const element = document.elementFromPoint(event.clientX, event.clientY);
-
-    if (element && (element.id === 'pikmin' || element.closest('#sidebar'))) {
-      window.electronAPI.enableMouseEvents(); // Allow interaction
-    } else {
-      window.electronAPI.disableMouseEvents(); // Ignore mouse events
-    }
-  });
-
-  // Ensure mouse events are enabled for the sidebar
-  const sidebar = document.getElementById('sidebar');
-  sidebar.addEventListener('mouseenter', () => {
-    console.log('Sidebar hovered'); // Debug log
-    window.electronAPI.sidebarHover(true); // Notify main process to enable mouse events
-  });
-  sidebar.addEventListener('mouseleave', () => {
-    console.log('Sidebar unhovered'); // Debug log
-    window.electronAPI.sidebarHover(false); // Notify main process to disable mouse events
-  });
-
-  // Start the Pikmin walking immediately
-  animate();
-
-  setInterval(switchDirection, 10000); // Check every 10 seconds
-  setInterval(startIdle, 60000); // Check every 1 minute
-
-  window.electronAPI.forwardClick = (mouseX, mouseY) => {
-    handleClick({ clientX: mouseX, clientY: mouseY });
-  };
-
-  const hydrationStatus = document.getElementById('hydrationStatus');
-  const energyStatus = document.getElementById('energyStatus');
-  const activityStatus = document.getElementById('activityStatus');
-  const focusStatus = document.getElementById('focusStatus');
 
   function updateStatusDisplay() {
-    hydrationStatus.textContent = `Hydration: ${hydration}`;
-    energyStatus.textContent = `Energy: ${energy}`;
-    activityStatus.textContent = `Activity: ${activity}`;
-    focusStatus.textContent = `Focus: ${focus}`;
+    document.getElementById('hydrationStatus').textContent = `Hydration: ${hydration}`;
+    document.getElementById('energyStatus').textContent = `Energy: ${energy}`;
+    document.getElementById('activityStatus').textContent = `Activity: ${activity}`;
+    document.getElementById('focusStatus').textContent = `Focus: ${focus}`;
   }
 
-  // Update Pikmin's happiness based on core stats
   function updateHappiness() {
     const happiness = (hydration > 60 && energy > 60 && activity > 60) ? 'happy' : 'sad';
-
-    // Update the status display only, without changing the animation
     updateStatusDisplay();
-
-    console.log(`Happiness updated to: ${happiness}`); // Debug log
+    console.log(`Happiness updated to: ${happiness}`);
   }
-
-  // Decay stats over time
-  setInterval(() => {
-    hydration = Math.max(0, hydration - getRandomInterval(10, 20)); // Faster decay for testing
-    energy = Math.max(0, energy - 1); // Decay every 10 mins
-    activity = Math.max(0, activity - 1); // Decay every 30 mins
-
-    // Trigger water reminder if hydration is below 100 (higher threshold for testing)
-    if (hydration < 100) {
-      triggerAlert();
-    }
-
-    updateHappiness();
-  }, 5000); // Check every 5 seconds for testing
 
   // Hydration refill
   function waterPikmin() {
     hydration = Math.min(100, hydration + 20);
-
-    // Notify the main process to close the reminder window
     window.electronAPI.waterPikmin();
 
-    // Play the "drink.mp3" sound
-    const drinkAudio = new Audio('./assets/sounds/drink.mp3');
+    const drinkAudioPath = window.electronAPI.resolveAssetPath('sounds/drink.mp3');
+    const drinkAudio = new Audio(drinkAudioPath);
     drinkAudio.play().catch(error => {
       console.error('Error playing drink sound:', error);
     });
 
-    // Stop Pikmin's movement during watering
     isIdle = true;
-    resetAnimationState(); // Ensure no overlapping animations
+    resetAnimationState();
 
-    // Play water animation with cache-busting
-    const waterAnimationPath = `./assets/sprites/yellow/water/${currentHat}.gif?v=${Date.now()}`;
+    const waterAnimationPath = window.electronAPI.resolveAssetPath(`sprites/yellow/water/${currentHat}.gif`);
+    console.log('Resolved Water Animation Path:', waterAnimationPath); // Debug log
     pikmin.style.backgroundImage = `url("${waterAnimationPath}")`;
 
-    // Upgrade the hat
-    let upgradedHat = currentHat;
+    // Determine the next hat stage
+    let nextHat = currentHat;
     if (currentHat === 'leaf') {
-      upgradedHat = 'bud';
+      nextHat = 'bud';
     } else if (currentHat === 'bud') {
-      upgradedHat = 'flower';
+      nextHat = 'flower';
     }
 
-    // After water animation, resume walking and play the upgrade sound
+    // Delay updating the walking animation until after the water animation completes
     setTimeout(() => {
-      // Play the "upgrade.mp3" sound
-      const upgradeAudio = new Audio('./assets/sounds/upgrade.mp3');
-      upgradeAudio.play().catch(error => {
-        console.error('Error playing upgrade sound:', error);
-      });
+      // Update the current hat only after the water animation completes
+      if (nextHat !== currentHat) {
+        const upgradeAudioPath = window.electronAPI.resolveAssetPath('sounds/upgrade.mp3');
+        const upgradeAudio = new Audio(upgradeAudioPath);
+        upgradeAudio.play().catch(error => {
+          console.error('Error playing upgrade sound:', error);
+        });
 
-      // Update the hat without resetting the animation state
-      currentHat = upgradedHat;
+        currentHat = nextHat; // Update the hat only after playing the sound
+      }
 
-      // Resume walking animation
-      isIdle = false; // Allow movement again
-      direction = 'right'; // Ensure the Pikmin continues walking right
-
-      // Update walking animation with cache-busting
-      const walkingAnimationPath = `./assets/sprites/yellow/walking/${currentHat}/right.png?v=${Date.now()}`;
+      // Update walking animation only after the hat is upgraded
+      const walkingAnimationPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/right.png`);
       pikmin.style.backgroundImage = `url("${walkingAnimationPath}")`;
 
-      animate(); // Resume walking animation
+      isIdle = false;
+      direction = 'right';
 
-      // Recalculate happiness after hydration and hat upgrade
+      animate();
       updateHappiness();
-    }, 3800); // 3800 for water animation duration (3.8 seconds)
-
-    console.log(`Water Pikmin clicked. Hydration: ${hydration}, Current Hat: ${currentHat}`); // Debug log
+    }, 3800); // 3.8 seconds for water animation duration
   }
 
   // Energy refill
@@ -350,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     energy = Math.min(100, energy + 30);
     updateHappiness();
     setTimeout(() => {
-      console.log('Nap complete!'); // Simulate 5-min rest
+      console.log('Nap complete!');
     }, 300000); // 5 minutes
   }
 
@@ -363,77 +157,98 @@ document.addEventListener('DOMContentLoaded', () => {
   // Focus reward
   function startFocus() {
     focus += 1;
-    pikmin.style.backgroundImage = `url('./assets/sprites/yellow/focus/${currentHat}.png')`;
+    const focusPath = window.electronAPI.resolveAssetPath(`sprites/yellow/focus/${currentHat}.png`);
+    pikmin.style.backgroundImage = `url("${focusPath}")`;
     setTimeout(() => {
       updateHappiness();
-    }, 1500); // Show focus animation briefly
+    }, 1500);
+  }
+
+  function startIdle(duration = 30000) { // Default duration is 30 seconds
+    if (isIdle) return; // Prevent multiple idle animations
+    isIdle = true;
+    resetAnimationState(); // Ensure no overlapping animations
+    let idleFrame = 0;
+
+    function playIdleFrame() {
+      if (!isIdle) return;
+
+      pikmin.style.backgroundPosition = `-${idleFrame * frameWidth}px 0`;
+      idleFrame = (idleFrame + 1) % totalFrames;
+
+      // Use the randomized interval for idle animation
+      const randomDelay = getRandomInterval(200, 800); // Random delay between 200ms and 800ms
+      setTimeout(playIdleFrame, randomDelay);
+    }
+
+    // Use the idle sprite sheet for the current hat
+    const idlePath = window.electronAPI.resolveAssetPath(`sprites/yellow/idle/${currentHat}.png`);
+    console.log('Resolved Idle Path:', idlePath); // Debug log
+    pikmin.style.backgroundImage = `url("${idlePath}")`;
+
+    playIdleFrame();
+
+    // Exit idle state after the specified duration
+    setTimeout(() => {
+      isIdle = false;
+      const walkingPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/right.png`);
+      console.log('Resolved Walking Path:', walkingPath); // Debug log
+      pikmin.style.backgroundImage = `url("${walkingPath}")`;
+      resetAnimationState();
+      animate(); // Resume walking animation
+    }, duration);
   }
 
   // Attach event listeners to sidebar buttons
   const waterButton = document.getElementById('waterPikmin');
   if (waterButton) {
-    waterButton.addEventListener('click', () => {
-      console.log('Water Pikmin button clicked'); // Debug log
-      waterPikmin();
-    });
-  } else {
-    console.error('Water Pikmin button not found'); // Debug log
+    waterButton.addEventListener('click', waterPikmin);
   }
 
   const napButton = document.getElementById('napTogether');
-  const stretchButton = document.getElementById('stretchTime');
-  const focusButton = document.getElementById('startFocus');
-
   if (napButton) {
-    napButton.addEventListener('click', () => {
-      console.log('Nap Together button clicked'); // Debug log
-      napTogether();
-    });
-  } else {
-    console.error('Nap Together button not found'); // Debug log
+    napButton.addEventListener('click', napTogether);
   }
 
+  const stretchButton = document.getElementById('stretchTime');
   if (stretchButton) {
-    stretchButton.addEventListener('click', () => {
-      console.log('Stretch Time button clicked'); // Debug log
-      stretchTime();
-    });
-  } else {
-    console.error('Stretch Time button not found'); // Debug log
+    stretchButton.addEventListener('click', stretchTime);
   }
 
+  const focusButton = document.getElementById('startFocus');
   if (focusButton) {
-    focusButton.addEventListener('click', () => {
-      console.log('Start Focus button clicked'); // Debug log
-      startFocus();
-    });
-  } else {
-    console.error('Start Focus button not found'); // Debug log
+    focusButton.addEventListener('click', startFocus);
   }
 
-  // Debug log for click forwarding
-  document.addEventListener('click', (event) => {
-    console.log(`Click detected at (${event.clientX}, ${event.clientY})`); // Debug log
-    window.electronAPI.forwardClick(event.clientX, event.clientY);
+  // Add click event to trigger idle animation and play on_click.mp3
+  pikmin.addEventListener('click', () => {
+    console.log('Pikmin clicked! Triggering idle animation.');
+
+    // Trigger idle animation for 1 second
+    startIdle(1000);
+
+    // Play on_click.mp3 sound
+    const clickAudioPath = window.electronAPI.resolveAssetPath('sounds/on_click.mp3'); // Ensure correct path
+    console.log('Resolved Click Audio Path:', clickAudioPath); // Debug log
+    const clickAudio = new Audio(clickAudioPath);
+    clickAudio.play().catch((error) => {
+      console.error('Error playing on_click.mp3:', error);
+    });
   });
 
-  // Initialize status display
-  updateStatusDisplay();
+  // Initialize stats and events
+  initializeStats();
+  initializeEvents(pikmin, resetAnimationState, animate, () => currentHat); // Pass currentHat as a getter function
 
-  function triggerAlert() {
-    // Play the "hey.mp3" sound
-    const audio = new Audio('./assets/sounds/hey.mp3');
-    audio.play().catch(error => {
-      console.error('Error playing sound:', error);
-    });
+  // Start the animation
+  animate();
 
-    // Trigger the Pikmin's idle animation
-    startIdle();
+  // Example: Start idle state every 10 seconds for testing
+  setInterval(startIdle, 10000);
 
-    // Send a request to the main process to show the popup
-    window.electronAPI.showWaterReminder();
-  }
-
-  // Set an interval to trigger the alert every 15 minutes
-  setInterval(triggerAlert, 15 * 60 * 1000); // 15 minutes in milliseconds
+  // Listen for the trigger-idle-animation event
+  window.electronAPI.triggerIdleAnimation(() => {
+    console.log('Idle animation triggered by low hydration.');
+    startIdle(2000); // Idle for 2 seconds when hydration is low
+  });
 });

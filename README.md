@@ -1,13 +1,13 @@
 # Pikmin Pal
 
-Pikmin Pal is a fun and interactive desktop companion application built using [Electron](https://www.electronjs.org/). It features a Yellow Pikmin that walks, idles, and interacts with the user. The application also includes reminders to drink water, making it a helpful tool for users with ADHD or anyone who needs gentle hydration reminders.
+Pikmin Pal is a fun and interactive desktop companion application built using [Electron](https://www.electronjs.org/). It features a Yellow Pikmin that walks, idles, and interacts with the user. The application also includes hydration reminders, making it a helpful tool for users with ADHD or anyone who needs gentle reminders to stay hydrated.
 
 ---
 
 ## Features
 
 - **Interactive Pikmin**: A Yellow Pikmin that walks across the screen, idles, and reacts to user interactions.
-- **Hydration Reminders**: A non-intrusive popup in the top-right corner reminds users to drink water.
+- **Hydration Reminders**: A non-intrusive popup in the top-right corner reminds users to drink water. The popup can be dismissed by clicking or watering the Pikmin.
 - **Custom Pikmin Font**: All text in the application uses a custom Pikmin font for a cohesive aesthetic.
 - **Sidebar Actions**: Includes buttons for watering the Pikmin, napping, stretching, and focusing.
 - **Custom Sounds**: Plays sounds for specific actions, such as upgrading the Pikmin's hat or watering it.
@@ -19,7 +19,7 @@ Pikmin Pal is a fun and interactive desktop companion application built using [E
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/lydialiu2003/pikmin-pal
    cd pikmin-pal
    ```
 
@@ -31,6 +31,11 @@ Pikmin Pal is a fun and interactive desktop companion application built using [E
 3. Start the application:
    ```bash
    npm start
+   ```
+
+4. To build the application for distribution:
+   ```bash
+   npm run build
    ```
 
 ---
@@ -50,7 +55,7 @@ Pikmin Pal is a fun and interactive desktop companion application built using [E
 
 - **Pikmin and Related Assets**: Pikmin and all related assets are owned by Nintendo.
 - **Sprites**: The Yellow Pikmin sprites were sourced from [OmegaZero22XX on DeviantArt](https://www.deviantart.com/omegazero22xx/art/Simple-Yellow-Pikmin-Sheet-2-0-474967693).
-- **Font**: The custom Pikmin font (`pikmin.otf`) is used for all text in the application. (https://www.fontget.com/font/pikmin-neue/)
+- **Font**: The custom Pikmin font (`pikmin.otf`) is used for all text in the application.
 
 ---
 
@@ -89,9 +94,26 @@ The custom Pikmin font is located in `assets/fonts/pikmin.otf`. It is applied gl
 
 ---
 
+## Packaging and Distribution
+
+The application is packaged using `electron-builder`. The configuration is located in `package.json` under the `build` section. The following targets are supported:
+- **macOS**: `dmg`
+- **Windows**: `nsis`
+- **Linux**: `AppImage`
+
+To build the application, run:
+```bash
+npm run build
+```
+
+The distributable files will be located in the `dist/` directory.
+
+---
+
 ## License
 
 This project is for educational and personal use only. 
+
 
 Pikmin and all related assets are owned by Nintendo. 
 
