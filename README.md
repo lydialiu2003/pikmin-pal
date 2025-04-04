@@ -1,5 +1,7 @@
 # Pikmin Pal
 
+NOTE: PLEASE NOTE THAT THIS IS A PERSONAL PROJECT THAT IT STILL A WORK IN PROGRESS, SOME FEATURES HAVE NOT BEEN FULLY IMPLEMNTED YET
+
 Pikmin Pal is a fun and interactive desktop companion application built using [Electron](https://www.electronjs.org/). It features a Yellow Pikmin that walks, idles, and interacts with the user. The application also includes reminders to drink water, making it a helpful tool for users with ADHD or anyone who needs gentle hydration reminders.
 
 ---
