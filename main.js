@@ -35,7 +35,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: width,
     height: height,
-    icon: path.join(targetAssetsPath, 'icons/pikmin-pal.icns'), // Use copied icon
+    icon: path.join(targetAssetsPath, 'icons/pikmin-pal.png'), // Set the app icon globally
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -50,6 +50,19 @@ function createWindow() {
     alwaysOnTop: true,
   });
 
+  // Enable click-through behavior
+  mainWindow.setIgnoreMouseEvents(true, { forward: true });
+
+  ipcMain.on('enable-mouse-events', () => {
+    console.log('Mouse events enabled');
+    mainWindow.setIgnoreMouseEvents(false); // Allow interaction
+  });
+
+  ipcMain.on('disable-mouse-events', () => {
+    console.log('Mouse events disabled');
+    mainWindow.setIgnoreMouseEvents(true, { forward: true }); // Make window click-through
+  });
+
   // Load the main HTML file
   mainWindow.loadFile(path.join(__dirname, 'index.html')).catch((err) => {
     console.error('Failed to load index.html:', err);
@@ -59,6 +72,11 @@ function createWindow() {
     mainWindow = null;
   });
 }
+
+ipcMain.on('show-water-reminder', () => {
+  console.log('Received show-water-reminder event');
+  showNativeNotification();
+});
 
 app.on('ready', () => {
   app.setAppUserModelId('com.pikmin.pal'); // Set the app user model ID for Windows

@@ -4,41 +4,34 @@ export let hydration = { value: 100 }; // Export hydration as an object
 let energy = 100;
 let activity = 100;
 let focus = 0;
-let isHeyPlaying = false; // Track if hey.mp3 is already playing
-let hydrationNotificationCooldown = false; // Cooldown flag to prevent rapid re-triggering
 
 export function initializeStats() {
+  const hydrationDecayRate = 50; // Hydration decreases by 50 every minute
+  const hydrationDecayInterval = 60 * 1000; // 1 minute in milliseconds
+  const notificationCooldownInterval = 5 * 60 * 1000; // 5 minutes in milliseconds
+  let lastNotificationTime = 0; // Initialize to 0 to allow immediate first notification
+
   setInterval(() => {
-    hydration.value = Math.max(0, hydration.value - getRandomInterval(10, 20)); // Decrease hydration
+    hydration.value = Math.max(0, hydration.value - hydrationDecayRate); // Gradual hydration decay
     energy = Math.max(0, energy - 1); // Decrease energy
     activity = Math.max(0, activity - 1); // Decrease activity
     updateStatsDisplay();
 
-    if (hydration.value < 50 && !isHeyPlaying && !hydrationNotificationCooldown) {
+    console.log(`Hydration: ${hydration.value}, Last Notification Time: ${lastNotificationTime}`);
+
+    const currentTime = Date.now();
+    if (hydration.value <= 50 && currentTime - lastNotificationTime >= notificationCooldownInterval) {
       console.log('Hydration is low. Triggering hydration notification.');
-      console.log('Playing hey.mp3. Setting isHeyPlaying to true and activating cooldown.');
-      window.electronAPI.showWaterReminder(); // Show water reminder
+      try {
+        window.electronAPI.showWaterReminder(); // Show water reminder
+        console.log('Notification triggered successfully.');
+      } catch (error) {
+        console.error('Error triggering notification:', error);
+      }
 
-      isHeyPlaying = true;
-      hydrationNotificationCooldown = true; // Activate cooldown
-      const heyAudioPath = window.electronAPI.resolveAssetPath('sounds/hey.mp3');
-      const heyAudio = new Audio(heyAudioPath);
-      heyAudio.play().catch((error) => {
-        console.error('Error playing hey.mp3:', error);
-      });
-
-      heyAudio.onended = () => {
-        console.log('hey.mp3 playback ended. Resetting isHeyPlaying to false.');
-        isHeyPlaying = false; // Reset flag when audio ends
-      };
-
-      // Reset cooldown after 10 seconds
-      setTimeout(() => {
-        hydrationNotificationCooldown = false;
-        console.log('Hydration notification cooldown reset.');
-      }, 10000);
+      lastNotificationTime = currentTime; // Update the last notification time
     }
-  }, 5000);
+  }, hydrationDecayInterval); // Decay hydration every minute
 }
 
 export function updateStatsDisplay() {

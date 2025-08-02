@@ -18,7 +18,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return process.env.NODE_ENV === 'development' ? process.cwd() : process.resourcesPath;
   },
   getUserDataPath: () => userDataPath, // Expose the userData path to the renderer process
-  showWaterReminder: () => ipcRenderer.send('show-water-reminder'),
+  showWaterReminder: () => {
+    console.log('Calling showWaterReminder from preload.js');
+    ipcRenderer.send('show-water-reminder');
+  },
   waterPikmin: () => ipcRenderer.send('water-pikmin'),
   resolveAssetPath: (relativePath) => {
     const basePath = path.join(userDataPath, 'assets'); // Always resolve from userData/assets
@@ -36,6 +39,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     return fileUrl;
   },
+  
   resolveWateringGif: (currentHat) => {
     const relativePath = `sprites/yellow/water/${currentHat}.gif`;
     return window.electronAPI.resolveAssetPath(relativePath); // Reuse resolveAssetPath for consistency

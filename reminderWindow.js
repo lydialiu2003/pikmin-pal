@@ -1,23 +1,17 @@
-const { ipcMain, Notification } = require('electron');
+const { Notification } = require('electron');
 
 function showNativeNotification() {
-  const notification = new Notification({
-    title: 'Hydration Reminder',
-    body: '💧 Time to drink water!',
-    silent: false, // Play sound
-  });
+  try {
+    const notification = new Notification({
+      title: 'Hydration Reminder',
+      body: '💧 Time to drink water!',
+    });
 
-  notification.show();
-
-  notification.on('click', () => {
-    console.log('Notification clicked!');
-  });
+    notification.show();
+    console.log('Native notification displayed.');
+  } catch (error) {
+    console.error('Error showing notification:', error);
+  }
 }
-
-// Listen for the "show-water-reminder" event
-ipcMain.on('show-water-reminder', () => {
-  console.log('Triggering Electron notification...');
-  showNativeNotification();
-});
 
 module.exports = { showNativeNotification };

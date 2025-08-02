@@ -48,19 +48,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (direction === 'right') {
       position += 2;
-      if (position >= window.innerWidth) {
-        direction = 'left';
-        const leftPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/left.png`);
+
+      // Check if Pikmin runs off the right edge of the screen
+      if (position >= window.innerWidth - frameWidth) {
+        direction = 'left'; // Change direction to left
+
+        // Immediately update the sprite and transform for left direction
+        const leftPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/right.png`); // Use right.png but flip it
         pikmin.style.backgroundImage = `url("${leftPath}")`;
+        pikmin.style.transform = 'scaleX(-1)'; // Flip horizontally for left direction
+      }
+
+      // Ensure the correct sprite sheet and transform are used for moving right
+      const rightPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/right.png`);
+      if (pikmin.style.backgroundImage !== `url("${rightPath}")`) {
+        pikmin.style.backgroundImage = `url("${rightPath}")`;
+        pikmin.style.transform = 'scaleX(1)'; // Ensure correct transform for right direction
       }
     } else {
       position -= 2;
-      if (position <= -frameWidth) {
-        direction = 'right';
+
+      // Check if Pikmin runs off the left edge of the screen
+      if (position <= 0) {
+        direction = 'right'; // Change direction to right
+
+        // Immediately update the sprite and transform for right direction
         const rightPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/right.png`);
         pikmin.style.backgroundImage = `url("${rightPath}")`;
+        pikmin.style.transform = 'scaleX(1)'; // Ensure correct transform for right direction
+      }
+
+      // Ensure the correct sprite sheet and transform are used for moving left
+      const leftPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/right.png`); // Use right.png but flip it
+      if (pikmin.style.backgroundImage !== `url("${leftPath}")`) {
+        pikmin.style.backgroundImage = `url("${leftPath}")`;
+        pikmin.style.transform = 'scaleX(-1)'; // Flip horizontally for left direction
       }
     }
+
     pikmin.style.left = `${position}px`;
 
     animationFrameId = setTimeout(() => {
@@ -72,6 +97,18 @@ document.addEventListener('DOMContentLoaded', () => {
     clearTimeout(animationFrameId);
     cancelAnimationFrame(animationFrameId);
     currentFrame = 0;
+
+    // Ensure the correct sprite sheet and transform are applied based on the current direction
+    if (direction === 'right') {
+      const rightPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/right.png`);
+      pikmin.style.backgroundImage = `url("${rightPath}")`;
+      pikmin.style.transform = 'scaleX(1)'; // Reset transform for right direction
+    } else {
+      const leftPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/right.png`); // Use right.png but flip it
+      pikmin.style.backgroundImage = `url("${leftPath}")`;
+      pikmin.style.transform = 'scaleX(-1)'; // Reset transform for left direction
+    }
+
     console.log('Animation state reset');
   }
 
@@ -104,6 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const waterAnimationPath = window.electronAPI.resolveAssetPath(`sprites/yellow/water/${currentHat}.gif`);
     console.log('Resolved Water Animation Path:', waterAnimationPath); // Debug log
+
+    // Apply the watering animation
     pikmin.style.backgroundImage = `url("${waterAnimationPath}")`;
 
     // Determine the next hat stage
@@ -127,13 +166,15 @@ document.addEventListener('DOMContentLoaded', () => {
         currentHat = nextHat; // Update the hat only after playing the sound
       }
 
-      // Update walking animation only after the hat is upgraded
-      const walkingAnimationPath = window.electronAPI.resolveAssetPath(`sprites/yellow/walking/${currentHat}/right.png`);
+      // Resume walking in the same direction as before
+      const walkingAnimationPath = window.electronAPI.resolveAssetPath(
+        `sprites/yellow/walking/${currentHat}/${direction === 'left' ? 'left' : 'right'}.png`
+      );
       pikmin.style.backgroundImage = `url("${walkingAnimationPath}")`;
 
       isIdle = false;
-      direction = 'right';
 
+      // Resume the walking animation
       animate();
       updateHappiness();
     }, 3800); // 3.8 seconds for water animation duration
@@ -236,8 +277,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Enable mouse events when hovering over the sidebar
+  const sidebar = document.getElementById('sidebar');
+  sidebar.addEventListener('mouseenter', () => {
+    window.electronAPI.enableMouseEvents();
+  });
+
+  // Disable mouse events when leaving the sidebar
+  sidebar.addEventListener('mouseleave', () => {
+    window.electronAPI.disableMouseEvents();
+  });
+
+  // Enable mouse events when clicking on the Pikmin sprite
+  pikmin.addEventListener('mousedown', () => {
+    window.electronAPI.enableMouseEvents();
+  });
+
+  // Disable mouse events after releasing the click on the Pikmin sprite
+  pikmin.addEventListener('mouseup', () => {
+    window.electronAPI.disableMouseEvents();
+  });
+
+  // Ensure mouse events are re-enabled when interacting with the Pikmin
+  pikmin.addEventListener('mouseenter', () => {
+    window.electronAPI.enableMouseEvents();
+  });
+
+  pikmin.addEventListener('mouseleave', () => {
+    window.electronAPI.disableMouseEvents();
+  });
+
   // Initialize stats and events
-  initializeStats();
+  initializeStats(); // Hydration decay is now handled in stats.js
   initializeEvents(pikmin, resetAnimationState, animate, () => currentHat); // Pass currentHat as a getter function
 
   // Start the animation
